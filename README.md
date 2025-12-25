@@ -1,1 +1,159 @@
 # pregnancy_agent_rag
+
+A small demo Flask app that combines a retrieval-augmented generation (RAG) pipeline with simple domain-specific agents to provide pregnancy-related guidance (diet, exercise, medication safety). The app ingests PDFs into a vector index, retrieves context for user queries, routes questions to a specialized agent, and uses Google Gemini to generate answers that incorporate retrieved context.
+
+IMPORTANT: This project is a proof-of-concept and NOT medical advice. Always consult a qualified healthcare professional for medical questions.
+
+---
+
+## Quick summary
+- Web UI: simple chat interface served at `/` (templates/chat.html).
+- Ingestion: extracts and indexes PDF content at startup (`ingest_pdfs()`).
+- Retrieval: vector search returns contextual snippets (`src/tools/vector_search.py`).
+- Routing: keyword-based router picks a domain agent (`src/agents/router_agent.py`).
+- Generation: each agent calls Google Gemini to produce the final answer.
+
+---
+
+## Features
+- RAG pipeline: combine vector-retrieved context with an LLM to improve factuality.
+- Domain routing: simple agents for diet, exercise, and medication safety.
+- Lightweight Flask app with a JSON chat API and web UI.
+- Easy to extend: add more agents, improve routing, or swap LLMs/vector stores.
+
+---
+
+## Prerequisites
+- Python 3.8+
+- A Google Gemini API key (set as GEMINI_API_KEY).
+- Recommended: virtualenv / venv for isolating dependencies.
+
+Suggested packages (see `requirements.txt`):
+- Flask
+- python-dotenv
+- google-generativeai
+- plus any vector store / embeddings libraries used by `src/tools/vector_search.py`
+
+---
+
+## Install & run (local development)
+
+1. Clone the repository
+   - git clone https://github.com/starcnobucks/pregnancy_agent_rag.git
+   - cd pregnancy_agent_rag
+
+2. Create and activate a virtual environment
+   - python -m venv .venv
+   - source .venv/bin/activate  (macOS / Linux)
+   - .venv\Scripts\activate     (Windows)
+
+3. Install dependencies
+   - pip install -r requirements.txt
+
+4. Create `.env` (or export env vars)
+   - Copy example (recommended): create `.env` with:
+     - GEMINI_API_KEY=your_gemini_api_key_here
+
+5. Run the app
+   - python app.py
+   - The app calls the ingestion pipeline at startup to (re)build the index and then starts Flask.
+
+6. Open the web UI
+   - http://localhost:5000/
+
+---
+
+## API
+
+POST /chat
+- Request JSON: { "q": "your question" }
+- Response JSON: { "a": "<answer text>" }
+
+Example:
+- curl -X POST -H "Content-Type: application/json" -d '{"q":"Can I eat sushi while pregnant?"}' http://localhost:5000/chat
+
+---
+
+## File structure (high level)
+
+- .env                 — environment variables (ignored)
+- .gitignore
+- README.md
+- app.py               — Flask entrypoint; calls ingestion at startup
+- requirements.txt
+- config/              — placeholder for configuration
+- static/              — static assets (CSS/JS) for frontend
+- templates/           — HTML templates (chat.html)
+- src/
+  - agents/
+    - router_agent.py   — keyword router that picks an agent
+    - diet_agent.py     — DietAgent (calls Gemini)
+    - exercise_agent.py — ExerciseAgent (calls Gemini)
+    - safety_agent.py   — SafetyAgent (calls Gemini)
+  - rag/
+    - ingestion.py      — PDF ingestion / indexing pipeline
+  - tools/
+    - vector_search.py  — retrieve(q) returns contextual snippets from the index
+
+---
+
+## How it works (flow)
+1. app.py calls ingest_pdfs() at startup to parse PDFs and create a vector index.
+2. User posts a question to `/chat`.
+3. The router (router_agent.route_query) selects an appropriate agent using simple keyword checks.
+4. The retrieval function retrieve(q) returns contextual documents/snippets from the index.
+5. The selected agent composes a prompt combining the context and the question and calls Gemini to generate an answer.
+6. The Flask endpoint returns the generated text to the client.
+
+---
+
+## Configuration & customization
+- Model: Agents instantiate `google.generativeai.GenerativeModel("gemini-1.5-flash")`. Change model name or packaging in agents if you want another model.
+- Routing: `src/agents/router_agent.py` currently uses simple keywords. Replace with an ML classifier or intent model for better accuracy.
+- Ingestion & retrieval: Inspect `src/rag/ingestion.py` and `src/tools/vector_search.py` to see where PDFs are read from, which embedding model is used, and which vector DB is configured. Modify paths or vector store settings to match your environment.
+- Add `.env.example` with required variables (GEMINI_API_KEY, any DB connection strings, etc.).
+
+---
+
+## Security & privacy
+- Do not commit secrets or API keys.
+- Avoid sending PHI/PII to external LLM services unless you have proper data protection controls.
+- This project is a demo — it does not include production hardening (authentication, rate limiting, logging redaction, etc.).
+
+---
+
+## Limitations & disclaimers
+- Not a medical product. Use for demonstration/learning only.
+- Agent responses are generated by an LLM and may be incorrect, unsafe, or incomplete.
+- Routing is basic and may misclassify some questions.
+
+---
+
+## Development ideas (next steps)
+- Add tests for ingestion, retrieval, and each agent.
+- Replace keyword router with intent classification.
+- Add prompt templates and safety filters to agents.
+- Add Dockerfile and docker-compose for a reproducible environment.
+- Support streaming responses and richer UI (message history, sources).
+- Add provenance: attach retrieved source excerpts and citations to responses.
+
+---
+
+## Contributing
+- Open issues to report bugs or request features.
+- Fork, create a branch, and open a PR. Include tests where applicable.
+
+---
+
+## License
+No license file included in the repository. Add a LICENSE file (e.g., MIT) to clarify terms.
+
+---
+
+If you want, I can:
+- Commit this README to the repository and open a PR,
+- Add a `.env.example` file,
+- Add a Dockerfile and docker-compose,
+- Extract and document the precise ingestion and retrieval details from `src/rag/ingestion.py` and `src/tools/vector_search.py`.
+
+Which of those should I do next?
