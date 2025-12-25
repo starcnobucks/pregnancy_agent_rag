@@ -1,0 +1,8 @@
+
+flask
+python-dotenv
+google-generativeai
+chromadb
+pypdf
+requests
+pyyaml

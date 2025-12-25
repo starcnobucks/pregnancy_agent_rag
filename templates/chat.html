@@ -1,0 +1,17 @@
+
+<!DOCTYPE html>
+<html>
+<head><link rel="stylesheet" href="/static/style.css"></head>
+<body>
+<div id="chat"></div>
+<input id="q"><button onclick="s()">Send</button>
+<script>
+async function s(){
+let q=document.getElementById("q").value
+let r=await fetch("/chat",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({q})})
+let j=await r.json()
+chat.innerHTML+=`<p><b>You:</b>${q}</p><p><b>Bot:</b>${j.a}</p>`
+}
+</script>
+</body>
+</html>
